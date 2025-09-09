@@ -9,7 +9,9 @@ class KaryawanController extends Controller
 {
     public function index()
     {
-        $karyawan = DB::select('EXEC sp_get_karyawan');
+        // Panggil stored procedure sp_get_karyawan
+        $karyawan = DB::select("EXEC sp_get_karyawan");
+
         return view('karyawan.index', compact('karyawan'));
     }
 
@@ -20,37 +22,43 @@ class KaryawanController extends Controller
 
     public function store(Request $request)
     {
-        DB::statement('EXEC sp_insert_karyawan ?, ?, ?, ?', [
+        DB::statement("EXEC sp_insert_karyawan ?, ?, ?, ?", [
             $request->nama,
-            $request->alamat,
             $request->no_telp,
-            $request->jabatan
+            $request->jabatan,
+            $request->alamat
         ]);
-        return redirect()->route('karyawan.index')->with('success', 'Karyawan berhasil ditambahkan!');
+
+        return redirect()->route('karyawan.index')->with('success', 'Karyawan berhasil ditambahkan.');
     }
 
     public function edit($id)
     {
-        $data = DB::select('SELECT * FROM karyawan WHERE id = ?', [$id]);
-        $karyawan = $data[0];
-        return view('karyawan.edit', compact('karyawan'));
+        $karyawan = DB::select("EXEC sp_get_karyawan_by_id ?", [$id]);
+        if (empty($karyawan)) {
+            return redirect()->route('karyawan.index')->with('error', 'Karyawan tidak ditemukan.');
+        }
+
+        return view('karyawan.edit', ['karyawan' => $karyawan[0]]);
     }
 
     public function update(Request $request, $id)
     {
-        DB::statement('EXEC sp_update_karyawan ?, ?, ?, ?, ?', [
+        DB::statement("EXEC sp_update_karyawan ?, ?, ?, ?, ?", [
             $id,
             $request->nama,
-            $request->alamat,
             $request->no_telp,
-            $request->jabatan
+            $request->jabatan,
+            $request->alamat
         ]);
-        return redirect()->route('karyawan.index')->with('success', 'Karyawan berhasil diperbarui!');
+
+        return redirect()->route('karyawan.index')->with('success', 'Karyawan berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
-        DB::statement('EXEC sp_delete_karyawan ?', [$id]);
-        return redirect()->route('karyawan.index')->with('success', 'Karyawan berhasil dihapus!');
+        DB::statement("EXEC sp_delete_karyawan ?", [$id]);
+
+        return redirect()->route('karyawan.index')->with('success', 'Karyawan berhasil dihapus (soft delete).');
     }
 }
